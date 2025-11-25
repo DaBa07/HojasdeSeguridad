@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscador de Maquinaria</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .transition-slow {
+      transition: all 0.8s ease;
+    }
+    .ficha-item {
+      transition: background-color 0.3s ease;
+    }
+    .ficha-item:hover {
+      background-color: #f8fafc;
+    }
+    
+    /* Forzar ocultación de modales */
+    .force-hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+    }
+    
+    /* Mejoras para móviles */
+    @media (max-width: 768px) {
+      .modal-content {
+        margin: 10px;
+        max-height: 95vh;
+      }
+      
+      .grid-mobile {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      
+      .text-mobile-sm {
+        font-size: 0.9rem;
+      }
+      
+      .p-mobile {
+        padding: 1rem;
+      }
+      
+      .button-mobile {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
+    
+    /* Mejorar legibilidad en pantallas pequeñas */
+    @media (max-width: 640px) {
+      .text-responsive {
+        font-size: 1.5rem !important;
+      }
+      
+      .text-lg-mobile {
+        font-size: 1.125rem !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
+
+  <!-- Header (título + buscador) -->
+  <div id="header" class="text-center transition-slow w-full max-w-4xl">
+    <h1 id="mainTitle" class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-responsive">Buscador de Maquinaria</h1>
+    <input id="search" type="text" placeholder="Buscar maquinaria..."
+      class="w-full sm:w-3/4 lg:w-2/3 p-3 border rounded-lg shadow mb-4 text-base">
+    <ul id="results" class="bg-white shadow rounded-lg divide-y overflow-hidden max-h-60 overflow-y-auto force-hidden"></ul>
+  </div>
+
+  <!-- Información de la máquina -->
+  <div id="machineInfo"
+    class="mt-4 sm:mt-6 force-hidden bg-white p-4 sm:p-6 rounded-lg shadow opacity-0 transform scale-95 transition-slow w-full max-w-4xl">
+    <img id="machineImage" src="" alt="Imagen maquinaria" class="w-full h-48 sm:h-64 object-contain mb-4">
+    <h2 id="machineName" class="text-xl sm:text-2xl font-bold mb-2 text-lg-mobile"></h2>
+    <p id="machineDescription" class="text-gray-700 mb-4 text-mobile-sm"></p>
+    <div class="flex flex-col sm:flex-row gap-2 sm:gap-2">
+      <button onclick="openTechnicalSheet()"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors button-mobile w-full sm:w-auto">
+        📋 Ficha Técnica
+      </button>
+      <button onclick="openForm()"
+        class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg transition-colors button-mobile w-full sm:w-auto">
+        🔧 Llenar Formulario de Mantenimiento
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Ficha Técnica -->
+  <div id="technicalSheetModal" class="fixed inset-0 force-hidden bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col modal-content">
+      <!-- Header de la ficha - FIJO -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 sm:p-6 rounded-t-lg flex-shrink-0 sticky top-0 z-10">
+        <div class="flex justify-between items-start">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold mb-1">Ficha Técnica</h2>
+            <p id="sheetMachineName" class="text-blue-100 text-base sm:text-lg"></p>
+          </div>
+          <button onclick="closeTechnicalSheet()" class="text-white hover:text-blue-200 text-2xl font-bold">
+            ×
+          </button>
+        </div>
+      </div>
+      
+      <!-- Contenido de la ficha - CON SCROLL -->
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 grid-mobile">
+          
+          <!-- Información General -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg border-b pb-2">📋 Información General</h3>
+            <div class="space-y-3">
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Fecha de Registro:</span>
+                <p id="registrationDate" class="text-gray-800 text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Área:</span>
+                <p id="area" class="text-gray-800 text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Código Interno:</span>
+                <p id="internalCode" class="text-gray-800 font-mono bg-gray-200 px-2 py-1 rounded inline-block text-xs sm:text-sm"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Especificaciones Técnicas -->
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg border-b pb-2">🔧 Especificaciones</h3>
+            <div class="space-y-3">
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Marca:</span>
+                <p id="brand" class="text-gray-800 font-semibold text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Modelo:</span>
+                <p id="model" class="text-gray-800 text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Serie:</span>
+                <p id="series" class="text-gray-800 font-mono text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Capacidad:</span>
+                <p id="capacity" class="text-gray-800 font-semibold text-blue-600 text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Proveedor:</span>
+                <p id="supplier" class="text-gray-800 text-sm"></p>
+              </div>
+              <div class="ficha-item p-2 rounded">
+                <span class="font-semibold text-gray-600 text-sm">Potencia/Requerimiento:</span>
+                <p id="powerRequirement" class="text-gray-800 font-semibold text-green-700 text-sm"></p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Información Adicional -->
+        <div class="mt-6 bg-green-50 p-4 rounded-lg">
+          <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg border-b pb-2">📊 Estado y Operación</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center">
+              <div id="operationStatus" class="text-xl sm:text-2xl font-bold text-green-600 mb-1">OPERATIVA</div>
+              <div class="text-xs sm:text-sm text-gray-600">Estado</div>
+            </div>
+            <div class="text-center">
+              <div id="operationHours" class="text-xl sm:text-2xl font-bold text-blue-600 mb-1">0</div>
+              <div class="text-xs sm:text-sm text-gray-600">Horas de Operación</div>
+            </div>
+            <div class="text-center">
+              <div id="lastMaintenance" class="text-xl sm:text-2xl font-bold text-orange-600 mb-1">N/A</div>
+              <div class="text-xs sm:text-sm text-gray-600">Último Mantenimiento</div>
+            </div>
+            <div class="text-center">
+              <div id="nextOilChange" class="text-xl sm:text-2xl font-bold text-purple-600 mb-1">--</div>
+              <div class="text-xs sm:text-sm text-gray-600">Horas para Cambio Aceite</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="mt-6">
+          <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg">💬 Observaciones</h3>
+          <div id="observations" class="bg-gray-50 p-4 rounded-lg text-gray-700 min-h-[60px] text-sm">
+            Sin observaciones registradas.
+          </div>
+        </div>
+
+        <!-- Footer con fecha de actualización -->
+        <div class="mt-6 pt-4 border-t text-center text-xs sm:text-sm text-gray-500">
+          Ficha generada el <span id="generationDate"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Formulario de Mantenimiento -->
+  <div id="formModal" class="fixed inset-0 force-hidden bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col modal-content">
+      <!-- Header del formulario - FIJO -->
+      <div class="bg-gradient-to-r from-green-600 to-green-800 text-white p-4 sm:p-6 rounded-t-lg flex-shrink-0 sticky top-0 z-10">
+        <div class="flex justify-between items-start">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold mb-1">🔧 Formulario de Mantenimiento</h2>
+            <p id="formMachineName" class="text-green-100 text-base sm:text-lg"></p>
+          </div>
+          <button onclick="closeForm()" class="text-white hover:text-green-200 text-2xl font-bold">
+            ×
+          </button>
+        </div>
+      </div>
+      
+      <!-- Contenido del formulario - CON SCROLL -->
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 p-mobile">
+        <form id="maintenanceForm" class="space-y-4 sm:space-y-6">
+          
+          <!-- Información del Técnico -->
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <h3 class="font-bold text-blue-800 mb-4 text-base sm:text-lg border-b border-blue-200 pb-2">👤 Información del Técnico</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-mobile">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre del Técnico *</label>
+                <input id="technicianName" type="text" required 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Proveedor *</label>
+                <input id="provider" type="text" required 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                       placeholder="Nombre del proveedor">
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del Mantenimiento -->
+          <div class="bg-green-50 p-4 rounded-lg">
+            <h3 class="font-bold text-green-800 mb-4 text-base sm:text-lg border-b border-green-200 pb-2">🔧 Detalles del Mantenimiento</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 grid-mobile">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Horas de Operación Actuales *</label>
+                <input id="maintenanceOperationHours" type="number" required min="0" step="0.1"
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base"
+                       placeholder="ej: 1250.5" onchange="calculateNextOilChange()">
+                <p class="text-xs text-gray-500 mt-1">Horómetro actual del equipo</p>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha del Mantenimiento *</label>
+                <input id="maintenanceDate" type="date" required
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base">
+              </div>
+            </div>
+            
+            <!-- Control de Cambio de Aceite -->
+            <div class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200">
+              <h4 class="font-bold text-orange-800 mb-3 text-sm flex items-center">
+                🛢️ Control de Cambio de Aceite
+              </h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Horómetro del Último Cambio de Aceite *</label>
+                  <input id="lastOilChangeHours" type="number" required min="0" step="0.1"
+                         class="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base"
+                         placeholder="ej: 850.0" onchange="calculateNextOilChange()">
+                  <p class="text-xs text-gray-500 mt-1">Horas cuando se hizo el último cambio</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Horas Restantes para Próximo Cambio</label>
+                  <div class="w-full p-3 bg-white border-2 border-orange-300 rounded-lg text-base font-bold text-center" id="hoursUntilOilChange">
+                    <span class="text-orange-600 text-lg">-- horas</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Se calcula automáticamente</p>
+                </div>
+              </div>
+              <!-- Alerta si está cerca del cambio -->
+              <div id="oilChangeAlert" class="hidden mt-3 p-3 bg-red-100 border border-red-300 rounded-lg">
+                <p class="text-sm text-red-800 font-semibold">⚠️ ¡ATENCIÓN! El cambio de aceite está próximo o vencido.</p>
+              </div>
+              <!-- Info del intervalo de esta máquina -->
+              <div id="oilChangeIntervalInfo" class="mt-2"></div>
+            </div>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo de Mantenimiento *</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label class="flex items-center bg-white p-3 rounded-lg border cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="maintenanceType" value="preventivo" required class="mr-2">
+                  <span class="text-blue-600 font-semibold text-sm sm:text-base">🛡️ Preventivo</span>
+                </label>
+                <label class="flex items-center bg-white p-3 rounded-lg border cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="maintenanceType" value="correctivo" required class="mr-2">
+                  <span class="text-red-600 font-semibold text-sm sm:text-base">🔨 Correctivo</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Descripción del Mantenimiento Realizado *</label>
+              <textarea id="maintenanceDescription" required rows="4"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base"
+                        placeholder="Describe detalladamente el mantenimiento realizado..."></textarea>
+            </div>
+          </div>
+
+          <!-- Observaciones y Evidencia -->
+          <div class="bg-yellow-50 p-4 rounded-lg">
+            <h3 class="font-bold text-yellow-800 mb-4 text-base sm:text-lg border-b border-yellow-200 pb-2">📝 Observaciones y Evidencia</h3>
+            
+            <!-- Observaciones -->
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Observaciones</label>
+              <textarea id="maintenanceObservations" rows="3"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-base"
+                        placeholder="Observaciones adicionales, recomendaciones, próximo mantenimiento, etc. (opcional)"></textarea>
+            </div>
+
+            <!-- Subir Foto -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">📸 Foto del Mantenimiento (Opcional)</label>
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-yellow-400 transition-colors">
+                <input type="file" id="maintenancePhoto" accept="image/*" capture="environment" 
+                       class="hidden" onchange="handlePhotoUpload(this)">
+                <label for="maintenancePhoto" class="cursor-pointer">
+                  <div class="flex flex-col items-center">
+                    <svg class="w-8 sm:w-12 h-8 sm:h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89L8.93 4.89A2 2 0 0110.593 4h2.814a2 2 0 011.664.89L16.407 6.1A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <p class="text-gray-600 mb-2 text-sm sm:text-base">
+                      <span class="font-semibold text-yellow-600">Toca para tomar foto</span> o arrastra imagen
+                    </p>
+                    <p class="text-xs text-gray-500">PNG, JPG hasta 5MB</p>
+                  </div>
+                </label>
+                
+                <!-- Preview de la imagen -->
+                <div id="photoPreview" class="hidden mt-4">
+                  <img id="previewImage" src="" alt="Vista previa" class="max-w-full h-32 sm:h-48 object-cover rounded-lg mx-auto">
+                  <p class="text-sm text-green-600 mt-2">✅ Imagen cargada correctamente</p>
+                  <button type="button" onclick="removePhoto()" class="text-red-500 text-sm underline mt-2">
+                    Quitar imagen
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+            <button type="submit" 
+                    class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors text-base">
+              📤 Enviar a Google Sheets
+            </button>
+            <button type="button" onclick="closeForm()" 
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-base">
+              Cancelar
+            </button>
+          </div>
+          
+        </form>
+        
+        <!-- Información para Google Sheets -->
+        <div class="mt-6 p-4 bg-blue-100 rounded-lg border border-blue-200">
+          <p class="text-sm text-blue-800">
+            <strong>📊 Google Sheets:</strong> Este formulario enviará los datos automáticamente a tu hoja de cálculo de Google para registro y análisis.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Datos de máquinas - Se cargarán desde Google Sheets
+    let machines = [];
+    
+    const searchInput = document.getElementById("search");
+    const resultsList = document.getElementById("results");
+    const machineInfo = document.getElementById("machineInfo");
+    const machineImage = document.getElementById("machineImage");
+    const machineName = document.getElementById("machineName");
+    const machineDescription = document.getElementById("machineDescription");
+    const header = document.getElementById("header");
+
+    let selectedMachine = null;
+    let maintenanceRecords = {}; // Almacenar registros de mantenimiento por máquina
+
+    // CARGAR CATÁLOGO DE MÁQUINAS DESDE GOOGLE SHEETS
+    async function loadMachinesCatalog() {
+      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+      
+      try {
+        const response = await fetch(googleSheetsURL + '?action=getCatalog');
+        const result = await response.json();
+        
+        if (result.success && result.machines) {
+          machines = result.machines;
+          console.log(`✅ Catálogo cargado: ${machines.length} máquinas`);
+        } else {
+          console.error("❌ Error al cargar catálogo");
+          // Usar datos de ejemplo si falla
+          loadDefaultMachines();
+        }
+      } catch (error) {
+        console.error("❌ Error de conexión:", error);
+        // Usar datos de ejemplo si falla
+        loadDefaultMachines();
+      }
+    }
+    
+    // Datos de ejemplo (fallback si Google Sheets no está disponible)
+    function loadDefaultMachines() {
+      machines = [
+        {
+          name: "Excavadora",
+          description: "Excavadora potente para trabajos de construcción pesada.",
+          image: "imagenes/excavadora.jpg",
+          technicalData: {
+            registrationDate: "15/03/2023",
+            area: "Construcción y Movimiento de Tierras",
+            internalCode: "EXC-001-2023",
+            brand: "Caterpillar",
+            model: "320D2",
+            series: "CAT320D2XYZ789",
+            capacity: "20 Toneladas",
+            operationHours: "1,247",
+            lastMaintenance: "12/09/2024",
+            status: "OPERATIVA",
+            observations: "Equipo en excelente estado. Última revisión de sistemas hidráulicos completada."
+          }
+        },
+        {
+          name: "John Deere 6125M",
+          description: "Placa 544",
+          image: "imagenes/johndeere.jpg",
+          technicalData: {
+            registrationDate: "22/01/2022",
+            area: "Agricultura y Campo",
+            internalCode: "JD-544-2022",
+            brand: "John Deere",
+            model: "6125M",
+            series: "JD6125M544ABC",
+            capacity: "125 HP",
+            operationHours: "2,856",
+            lastMaintenance: "28/08/2024",
+            status: "OPERATIVA",
+            observations: "Tractor agrícola de alta eficiencia. Motor diésel de 6 cilindros."
+          }
+        }
+      ];
+      console.log("⚠️ Usando catálogo de ejemplo");
+    }
+
+    // Cargar catálogo al iniciar
+    window.addEventListener('load', async () => {
+      // Cargar máquinas primero
+      await loadMachinesCatalog();
+      
+      // Luego ocultar elementos
+      machineInfo.classList.add("force-hidden");
+      machineInfo.classList.remove("opacity-100", "scale-100");
+      machineInfo.classList.add("opacity-0", "scale-95");
+      
+      resultsList.classList.add("force-hidden");
+      resultsList.innerHTML = "";
+      
+      const technicalModal = document.getElementById("technicalSheetModal");
+      const formModal = document.getElementById("formModal");
+      
+      technicalModal.classList.add("force-hidden");
+      formModal.classList.add("force-hidden");
+      
+      document.getElementById("maintenanceForm").reset();
+      selectedMachine = null;
+    });
+
+    // Función para calcular horas restantes para cambio de aceite
+    function calculateNextOilChange() {
+      const currentHours = parseFloat(document.getElementById("maintenanceOperationHours").value) || 0;
+      const lastOilChange = parseFloat(document.getElementById("lastOilChangeHours").value) || 0;
+      
+      if (currentHours > 0 && lastOilChange > 0 && selectedMachine) {
+        // USAR EL INTERVALO ESPECÍFICO DE ESTA MÁQUINA
+        const OIL_CHANGE_INTERVAL = selectedMachine.technicalData.oilChangeInterval || 600;
+        const hoursSinceLastChange = currentHours - lastOilChange;
+        const hoursRemaining = OIL_CHANGE_INTERVAL - hoursSinceLastChange;
+        
+        const displayElement = document.getElementById("hoursUntilOilChange");
+        const alertElement = document.getElementById("oilChangeAlert");
+        
+        if (hoursRemaining <= 0) {
+          displayElement.innerHTML = `<span class="text-red-600 text-lg">¡CAMBIO VENCIDO! (${Math.abs(hoursRemaining).toFixed(1)} hrs excedidas)</span>`;
+          alertElement.innerHTML = `<p class="text-sm text-red-800 font-semibold">⚠️ ¡ATENCIÓN! El cambio de aceite está vencido por ${Math.abs(hoursRemaining).toFixed(0)} horas.</p>`;
+          alertElement.classList.remove("hidden");
+        } else if (hoursRemaining <= 50) {
+          displayElement.innerHTML = `<span class="text-orange-600 text-lg">${hoursRemaining.toFixed(1)} horas</span>`;
+          alertElement.innerHTML = `<p class="text-sm text-orange-800 font-semibold">⚠️ ¡ATENCIÓN! El cambio de aceite está próximo. Quedan solo ${hoursRemaining.toFixed(0)} horas.</p>`;
+          alertElement.classList.remove("hidden");
+        } else {
+          displayElement.innerHTML = `<span class="text-green-600 text-lg">${hoursRemaining.toFixed(1)} horas</span>`;
+          alertElement.classList.add("hidden");
+        }
+        
+        // Mostrar intervalo específico de esta máquina
+        document.getElementById("oilChangeIntervalInfo").innerHTML = 
+          `<p class="text-xs text-gray-600 mt-2">📋 Esta máquina requiere cambio cada <strong>${OIL_CHANGE_INTERVAL} horas</strong></p>`;
+      }
+    }
+
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      resultsList.innerHTML = "";
+
+      if (!query) {
+        // Ocultar lista de resultados y información de máquina cuando no hay búsqueda
+        resultsList.classList.add("force-hidden");
+        machineInfo.classList.remove("opacity-100", "scale-100");
+        machineInfo.classList.add("opacity-0", "scale-95", "force-hidden");
+        return;
+      }
+
+      const filtered = machines.filter(m =>
+        m.name.toLowerCase().includes(query)
+      );
+
+      if (filtered.length > 0) {
+        resultsList.classList.remove("force-hidden");
+        filtered.forEach(machine => {
+          const li = document.createElement("li");
+          li.textContent = machine.name;
+          li.className = "p-3 hover:bg-gray-100 cursor-pointer";
+          li.addEventListener("click", () => selectMachine(machine));
+          resultsList.appendChild(li);
+        });
+      } else {
+        resultsList.classList.add("force-hidden");
+      }
+    });
+
+    function selectMachine(machine) {
+      selectedMachine = machine;
+      
+      machineImage.src = machine.image;
+      machineName.textContent = machine.name;
+      machineDescription.textContent = machine.description;
+
+      machineInfo.classList.remove("force-hidden");
+      setTimeout(() => {
+        machineInfo.classList.add("opacity-100", "scale-100");
+        machineInfo.classList.remove("opacity-0", "scale-95");
+      }, 10);
+
+      resultsList.innerHTML = "";
+      resultsList.classList.add("force-hidden");
+      searchInput.value = machine.name;
+    }
+
+    function openTechnicalSheet() {
+      if (!selectedMachine) return;
+      
+      const data = selectedMachine.technicalData;
+      const machineKey = selectedMachine.technicalData.internalCode;
+      
+      // Llenar la información básica en el modal
+      document.getElementById("sheetMachineName").textContent = selectedMachine.name;
+      document.getElementById("registrationDate").textContent = data.registrationDate;
+      document.getElementById("area").textContent = data.area;
+      document.getElementById("internalCode").textContent = data.internalCode;
+      document.getElementById("brand").textContent = data.brand;
+      document.getElementById("model").textContent = data.model;
+      document.getElementById("series").textContent = data.series;
+      document.getElementById("capacity").textContent = data.capacity;
+      document.getElementById("supplier").textContent = data.supplier;
+      document.getElementById("powerRequirement").textContent = data.powerRequirement;
+      document.getElementById("observations").textContent = data.observations;
+      
+      // Estado con color dinámico
+      const statusElement = document.getElementById("operationStatus");
+      statusElement.textContent = data.status;
+      if (data.status === "OPERATIVA") {
+        statusElement.className = "text-xl sm:text-2xl font-bold text-green-600 mb-1";
+      } else if (data.status === "MANTENIMIENTO") {
+        statusElement.className = "text-xl sm:text-2xl font-bold text-orange-600 mb-1";
+      } else {
+        statusElement.className = "text-xl sm:text-2xl font-bold text-red-600 mb-1";
+      }
+      
+      // Fecha de generación
+      const now = new Date();
+      document.getElementById("generationDate").textContent = now.toLocaleDateString('es-ES');
+      
+      // Mostrar modal
+      document.getElementById("technicalSheetModal").classList.remove("force-hidden");
+      
+      // LEER DATOS DESDE GOOGLE SHEETS (asíncrono)
+      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+      
+      // Mostrar valores por defecto mientras carga
+      document.getElementById("operationHours").textContent = data.operationHours + " ⏳";
+      document.getElementById("lastMaintenance").textContent = "Cargando...";
+      document.getElementById("nextOilChange").textContent = "⏳";
+      document.getElementById("observations").textContent = " Cargando Ultimas Observaciones...";
+      
+      // Hacer petición GET para obtener último mantenimiento
+      fetch(googleSheetsURL + '?machineId=' + encodeURIComponent(machineKey))
+        .then(response => response.json())
+        .then(result => {
+          if (result.success && result.data) {
+            // Actualizar con datos reales de Google Sheets
+            const currentHours = parseFloat(result.data.operationHours);
+            const lastOilChange = parseFloat(result.data.lastOilChangeHours);
+            const oilChangeInterval = selectedMachine.technicalData.oilChangeInterval || 600;
+            const maintenanceDescription = parseFloat(result.data.maintenanceDescription);
+            
+            document.getElementById("operationHours").textContent = currentHours;
+            document.getElementById("lastMaintenance").textContent = new Date(result.data.maintenanceDate).toLocaleDateString('es-ES');
+            document.getElementById("maintenanceDescription").textContent = data.maintenanceDescription;
+            
+            // Calcular horas restantes para cambio de aceite CON EL INTERVALO ESPECÍFICO
+            if (lastOilChange > 0) {
+              const hoursSinceLastChange = currentHours - lastOilChange;
+              const hoursRemaining = oilChangeInterval - hoursSinceLastChange;
+              
+              const nextOilElement = document.getElementById("nextOilChange");
+              if (hoursRemaining <= 0) {
+                nextOilElement.textContent = "¡VENCIDO!";
+                nextOilElement.className = "text-xl sm:text-2xl font-bold text-red-600 mb-1";
+              } else if (hoursRemaining <= 50) {
+                nextOilElement.textContent = hoursRemaining.toFixed(0) + " hrs";
+                nextOilElement.className = "text-xl sm:text-2xl font-bold text-orange-600 mb-1";
+              } else {
+                nextOilElement.textContent = hoursRemaining.toFixed(0) + " hrs";
+                nextOilElement.className = "text-xl sm:text-2xl font-bold text-purple-600 mb-1";
+              }
+            } else {
+              document.getElementById("nextOilChange").textContent = "Sin datos";
+            }
+          } else {
+            // Si no hay registros, usar valores por defecto
+            document.getElementById("operationHours").textContent = data.operationHours;
+            document.getElementById("lastMaintenance").textContent = data.lastMaintenance;
+            document.getElementById("nextOilChange").textContent = "Sin datos";
+          }
+        })
+        .catch(error => {
+          console.log("⚠️ No se pudieron cargar datos de Google Sheets, usando valores por defecto");
+          // En caso de error, usar valores por defecto
+          document.getElementById("operationHours").textContent = data.operationHours;
+          document.getElementById("lastMaintenance").textContent = data.lastMaintenance;
+          document.getElementById("nextOilChange").textContent = "Sin datos";
+        });
+    }
+
+    function closeTechnicalSheet() {
+      document.getElementById("technicalSheetModal").classList.add("force-hidden");
+    }
+
+    function openForm() {
+      if (!selectedMachine) return;
+      
+      // Mostrar el nombre de la máquina en el header del formulario
+      document.getElementById("formMachineName").textContent = selectedMachine.name;
+      
+      // Pre-llenar la fecha actual
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById("maintenanceDate").value = today;
+      
+      document.getElementById("formModal").classList.remove("force-hidden");
+    }
+    
+    function closeForm() {
+      document.getElementById("formModal").classList.add("force-hidden");
+    }
+
+    // Función para manejar la subida de fotos
+    function handlePhotoUpload(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validar tamaño (5MB máximo)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('La imagen es demasiado grande. Máximo 5MB.');
+          input.value = '';
+          return;
+        }
+        
+        // Validar tipo de archivo
+        if (!file.type.startsWith('image/')) {
+          alert('Por favor selecciona solo archivos de imagen.');
+          input.value = '';
+          return;
+        }
+        
+        // Mostrar preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('previewImage').src = e.target.result;
+          document.getElementById('photoPreview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Función para quitar la foto
+    function removePhoto() {
+      document.getElementById('maintenancePhoto').value = '';
+      document.getElementById('photoPreview').classList.add('hidden');
+      document.getElementById('previewImage').src = '';
+    }
+
+    // Manejo del envío del formulario de mantenimiento
+    document.getElementById("maintenanceForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      
+      if (!selectedMachine) return;
+      
+      // Obtener el botón de envío
+      const submitButton = e.target.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.innerHTML;
+      
+      // Deshabilitar el botón para evitar envíos duplicados
+      submitButton.disabled = true;
+      submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+      submitButton.innerHTML = '⏳ Enviando...';
+      
+      try {
+        // Obtener archivo de foto si existe
+        const photoFile = document.getElementById("maintenancePhoto").files[0];
+        
+        // Función para convertir foto a Base64
+        const getBase64 = (file) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+          });
+        };
+        
+        let photoBase64 = null;
+        let photoType = null;
+        
+        if (photoFile) {
+          submitButton.innerHTML = '📸 Procesando foto...';
+          photoBase64 = await getBase64(photoFile);
+          photoType = photoFile.type;
+        }
+        
+        // Recopilar datos del formulario
+        const formData = {
+          machineId: selectedMachine.technicalData.internalCode,
+          machineName: selectedMachine.name,
+          technicianName: document.getElementById("technicianName").value,
+          provider: document.getElementById("provider").value,
+          operationHours: document.getElementById("maintenanceOperationHours").value,
+          lastOilChangeHours: document.getElementById("lastOilChangeHours").value,
+          maintenanceDate: document.getElementById("maintenanceDate").value,
+          maintenanceType: document.querySelector('input[name="maintenanceType"]:checked').value,
+          maintenanceDescription: document.getElementById("maintenanceDescription").value,
+          observations: document.getElementById("maintenanceObservations").value || 'Sin observaciones',
+          hasPhoto: photoFile ? true : false,
+          photoName: photoFile ? photoFile.name : null,
+          photoSize: photoFile ? photoFile.size : null,
+          photoBase64: photoBase64,
+          photoType: photoType,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Almacenar el registro localmente
+        const machineKey = selectedMachine.technicalData.internalCode;
+        if (!maintenanceRecords[machineKey]) {
+          maintenanceRecords[machineKey] = [];
+        }
+        maintenanceRecords[machineKey].push(formData);
+        
+        // ENVIAR A GOOGLE SHEETS
+        const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+        
+        submitButton.innerHTML = '📤 Enviando a Google Sheets...';
+        
+        await fetch(googleSheetsURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        console.log("✅ Datos enviados exitosamente a Google Sheets");
+        
+        // Para desarrollo/testing - mostrar datos en consola
+        console.log("📊 Datos para Google Sheets:", formData);
+        
+        // Simular envío exitoso
+        const photoInfo = photoFile ? `\n• 📷 Foto: ${photoFile.name} (${(photoFile.size / 1024 / 1024).toFixed(2)} MB) - Subida a Google Drive` : '';
+        alert(`✅ Formulario de mantenimiento enviado exitosamente!
+        
+📋 Resumen:
+• 👤 Técnico: ${formData.technicianName}
+• 🏢 Proveedor: ${formData.provider}
+• 🔧 Tipo: ${formData.maintenanceType}
+• ⏰ Horas: ${formData.operationHours}
+• 📅 Fecha: ${new Date(formData.maintenanceDate).toLocaleDateString('es-ES')}${photoInfo}
+
+📊 Los datos han sido enviados a Google Sheets.
+${photoFile ? '📸 La foto está disponible en Google Drive (ver columna "Link Foto")' : ''}`);
+        
+        // Limpiar formulario y cerrar
+        document.getElementById("maintenanceForm").reset();
+        removePhoto();
+        closeForm();
+        
+      } catch (error) {
+        console.error("❌ Error al enviar:", error);
+        alert("❌ Hubo un error al enviar el formulario. Por favor intenta de nuevo.");
+      } finally {
+        // Restaurar el botón (por si acaso no se cierra el modal)
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        submitButton.innerHTML = originalButtonText;
+      }
+    });
+
+    document.getElementById("machineDataForm").addEventListener("submit", e => {
+      e.preventDefault();
+      alert("Datos de la máquina guardados!");
+      closeMachineData();
+    });
+  </script>
+</body>
+</html>
