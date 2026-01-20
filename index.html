@@ -184,11 +184,11 @@
           </div>
         </div>
 
-        <!-- Observaciones -->
+        <!-- Descripción del Último Mantenimiento -->
         <div class="mt-6">
-          <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg">💬 Observaciones</h3>
+          <h3 class="font-bold text-gray-800 mb-3 text-base sm:text-lg">📝 Descripción del Último Mantenimiento</h3>
           <div id="observations" class="bg-gray-50 p-4 rounded-lg text-gray-700 min-h-[60px] text-sm">
-            Sin observaciones registradas.
+            Sin descripción de mantenimiento registrada.
           </div>
         </div>
 
@@ -391,7 +391,7 @@
 
     // CARGAR CATÁLOGO DE MÁQUINAS DESDE GOOGLE SHEETS
     async function loadMachinesCatalog() {
-      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxhbLePOMYrjv2fBZEUCbPyPJzUgNf3nx6Tzb9MBhVlrafcR-irRc26F7ka094SDGA0Sw/exec";
       
       try {
         const response = await fetch(googleSheetsURL + '?action=getCatalog');
@@ -516,7 +516,7 @@
       resultsList.innerHTML = "";
 
       if (!query) {
-        // Ocultar lista de resultados y información de máquina cuando no hay búsqueda
+        // Ocultar lista de resultados e información de máquina cuando no hay búsqueda
         resultsList.classList.add("force-hidden");
         machineInfo.classList.remove("opacity-100", "scale-100");
         machineInfo.classList.add("opacity-0", "scale-95", "force-hidden");
@@ -597,13 +597,13 @@
       document.getElementById("technicalSheetModal").classList.remove("force-hidden");
       
       // LEER DATOS DESDE GOOGLE SHEETS (asíncrono)
-      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+      const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxhbLePOMYrjv2fBZEUCbPyPJzUgNf3nx6Tzb9MBhVlrafcR-irRc26F7ka094SDGA0Sw/exec";
       
       // Mostrar valores por defecto mientras carga
       document.getElementById("operationHours").textContent = data.operationHours + " ⏳";
       document.getElementById("lastMaintenance").textContent = "Cargando...";
       document.getElementById("nextOilChange").textContent = "⏳";
-      document.getElementById("observations").textContent = " Cargando Ultimas Observaciones...";
+      document.getElementById("observations").textContent = "📋 Cargando última descripción de mantenimiento...";
       
       // Hacer petición GET para obtener último mantenimiento
       fetch(googleSheetsURL + '?machineId=' + encodeURIComponent(machineKey))
@@ -614,11 +614,16 @@
             const currentHours = parseFloat(result.data.operationHours);
             const lastOilChange = parseFloat(result.data.lastOilChangeHours);
             const oilChangeInterval = selectedMachine.technicalData.oilChangeInterval || 600;
-            const maintenanceDescription = parseFloat(result.data.maintenanceDescription);
             
             document.getElementById("operationHours").textContent = currentHours;
             document.getElementById("lastMaintenance").textContent = new Date(result.data.maintenanceDate).toLocaleDateString('es-ES');
-            document.getElementById("maintenanceDescription").textContent = data.maintenanceDescription;
+            
+            // Mostrar DESCRIPCIÓN DEL MANTENIMIENTO en lugar de observaciones
+            if (result.data.maintenanceDescription) {
+              document.getElementById("observations").textContent = result.data.maintenanceDescription;
+            } else {
+              document.getElementById("observations").textContent = "Sin descripción de mantenimiento registrada.";
+            }
             
             // Calcular horas restantes para cambio de aceite CON EL INTERVALO ESPECÍFICO
             if (lastOilChange > 0) {
@@ -778,7 +783,7 @@
         maintenanceRecords[machineKey].push(formData);
         
         // ENVIAR A GOOGLE SHEETS
-        const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxOSvizGt714K26SfXFUnuLwPxjin_3dNtSJsedkZL6ZaiIUAqz_hQeaE7RdvQ8fGyUYA/exec";
+        const googleSheetsURL = "https://script.google.com/macros/s/AKfycbxhbLePOMYrjv2fBZEUCbPyPJzUgNf3nx6Tzb9MBhVlrafcR-irRc26F7ka094SDGA0Sw/exec";
         
         submitButton.innerHTML = '📤 Enviando a Google Sheets...';
         
@@ -834,3 +839,4 @@ ${photoFile ? '📸 La foto está disponible en Google Drive (ver columna "Link 
   </script>
 </body>
 </html>
+
